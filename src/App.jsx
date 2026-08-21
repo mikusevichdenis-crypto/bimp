@@ -1,190 +1,172 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  BarChart3,
-  Boxes,
+  ArrowLeft,
   ChevronDown,
-  ClipboardList,
-  Factory,
-  FileSpreadsheet,
-  HelpCircle,
-  LayoutDashboard,
-  LifeBuoy,
-  ListChecks,
-  PackageSearch,
+  ChevronRight,
+  CircleHelp,
+  Download,
+  MoreHorizontal,
+  Plus,
   Search,
-  Settings,
-  ShoppingCart,
   SlidersHorizontal,
-  Users,
-  WalletCards,
-  Wrench,
-  X,
+  SquareArrowOutUpRight,
+  Package,
 } from 'lucide-react';
 
-const nav = [
-  [LayoutDashboard, 'Дашборд'],
-  [Boxes, 'Склад'],
-  [PackageSearch, 'Екосистема'],
-  [Users, 'Контрагенти'],
-  [BarChart3, 'Продажі'],
-  [ShoppingCart, 'Закупки', true],
-  [WalletCards, 'Фінанси'],
-  [Factory, 'Вир-во'],
-  [Wrench, 'Сервіс і\nремонт'],
-  [ClipboardList, 'Звіти'],
-  [ListChecks, 'Завдання'],
+const stages = [
+  'SMT-МОНТАЖ',
+  'РУЧНА ПАЙКА',
+  'ПРОШИВКА КОНТРОЛЕРА',
+  'ЗБІРКА КОРПУСУ',
+  'ФУНКЦІОНАЛЬНИЙ ТЕСТ',
+  'МАРКУВАННЯ',
+  'ПАКУВАННЯ',
 ];
 
-const rows = [
-  { product: 'PCB 4-шарова БК-42', supplier: 'PCB Solutions', need: 3, stock: 8, reserve: 1, available: 7, supplierOrder: 0, customerOrder: 10, workOrder: 0, production: 10, unit: 'шт' },
-  { product: 'Мікроконтролер STM32', supplier: 'Electron Components', need: 4, stock: 6, reserve: 0, available: 6, supplierOrder: 0, customerOrder: 10, workOrder: 0, production: 10, unit: 'шт' },
-  { product: 'CAN-трансивер', supplier: 'Electron Components', need: 7, stock: 4, reserve: 1, available: 3, supplierOrder: 0, customerOrder: 10, workOrder: 0, production: 10, unit: 'шт' },
-  { product: 'DC-DC перетворювач 24V', supplier: 'PowerTech', need: 2, stock: 9, reserve: 1, available: 8, supplierOrder: 0, customerOrder: 10, workOrder: 0, production: 10, unit: 'шт' },
-  { product: 'MOSFET силовий HQS148', supplier: 'PowerTech', need: 6, stock: 18, reserve: 4, available: 14, supplierOrder: 0, customerOrder: 20, workOrder: 0, production: 20, unit: 'шт' },
-  { product: 'Роз’єм 6-pin', supplier: 'MicroParts', need: 8, stock: 16, reserve: 4, available: 12, supplierOrder: 0, customerOrder: 20, workOrder: 0, production: 20, unit: 'шт' },
-  { product: 'Корпус алюмінієвий БК-42', supplier: 'MetalCase', need: 5, stock: 6, reserve: 1, available: 5, supplierOrder: 0, customerOrder: 10, workOrder: 0, production: 10, unit: 'шт' },
-  { product: 'Етикетка БК-42', supplier: 'PrintLab', need: 6, stock: 4, reserve: 0, available: 4, supplierOrder: 0, customerOrder: 10, workOrder: 0, production: 10, unit: 'шт' },
-  { product: 'Пакування БК-42', supplier: 'PackPro', need: 2, stock: 10, reserve: 2, available: 8, supplierOrder: 0, customerOrder: 10, workOrder: 0, production: 10, unit: 'шт' },
+const materials = [
+  { name: 'Плата керування БК-42', mod: 'V3.1 · 4-шарова', qty: 10, unit: 'Шт', price: 240, sum: 2400 },
+  { name: 'Мікроконтролер STM32', mod: 'STM32F103', qty: 10, unit: 'Шт', price: 220, sum: 2200 },
+  { name: 'CAN-трансивер', mod: 'TJA1050', qty: 10, unit: 'Шт', price: 70, sum: 700 },
+  { name: 'Модуль живлення БК-42', mod: 'Напівфабрикат · V3.1', qty: 10, unit: 'Шт', price: 110, sum: 1100 },
+  { name: 'Силові MOSFET / реле', mod: 'HQ5148', qty: 10, unit: 'компл.', price: 160, sum: 1600 },
+  { name: 'Джгут кабельний БК-42', mod: 'V3.1 · 6-pin', qty: 10, unit: 'компл.', price: 95, sum: 950 },
+  { name: 'Пасивні компоненти', mod: 'SMD-комплект', qty: 10, unit: 'компл.', price: 75, sum: 750 },
+  { name: 'Корпус БК-42', mod: 'V3.1 · алюмінієвий', qty: 10, unit: 'Шт', price: 170, sum: 1700 },
+  { name: 'Кріплення та монтажні елементи', mod: 'M3 · комплект', qty: 10, unit: 'компл.', price: 25, sum: 250 },
+  { name: 'Маркування та упаковка', mod: 'БК-42 V3.1', qty: 10, unit: 'компл.', price: 15, sum: 150 },
 ];
 
-const tabs = ['Замовлення постачальникам', 'Надходження товарів', 'Повернення постачальникам', 'Оплата постачальникам', 'Планування закупок'];
-
-function Logo() {
-  return (
-    <div className="logo-box">
-      <span>Bimp</span>
-    </div>
-  );
-}
+const fmt = (value) => value.toLocaleString('uk-UA', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 function App() {
   const [query, setQuery] = useState('');
-  const [onlyNeed, setOnlyNeed] = useState(true);
 
-  const visibleRows = useMemo(() => {
-    return rows.filter((row) => {
-      const matches = `${row.product} ${row.supplier}`.toLowerCase().includes(query.toLowerCase());
-      return matches && (!onlyNeed || row.need > 0);
-    });
-  }, [query, onlyNeed]);
+  const visibleMaterials = materials.filter((item) =>
+    `${item.name} ${item.mod}`.toLowerCase().includes(query.toLowerCase())
+  );
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div />
-        <div className="topbar-actions">
-          <span>⚯ Е-помічник</span>
-          <span><LifeBuoy size={15} /> Підтримка</span>
-          <span>▣ База знань</span>
-          <span>◎ UA <ChevronDown size={14} /></span>
-          <span className="divider" />
-          <span>♙ Кабінет користувача</span>
-          <span className="notification">2</span>
-          <span className="avatar">Y</span>
-        </div>
-      </header>
-
-      <div className="workspace">
-        <aside className="sidebar">
-          <Logo />
-          <div className="nav-list">
-            {nav.map(([Icon, label, active]) => (
-              <button key={label} className={`nav-item ${active ? 'active' : ''}`}>
-                <Icon size={23} strokeWidth={1.7} />
-                <span>{label.split('\n').map((x, i) => <React.Fragment key={i}>{x}{i === 0 && label.includes('\n') ? <br /> : null}</React.Fragment>)}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <main className="main-panel">
-          <div className="module-tabs">
-            {tabs.map((tab) => <button key={tab} className={tab === 'Планування закупок' ? 'tab active' : 'tab'}>{tab}</button>)}
-            <button className="dots">•••</button>
+    <main className="spec-page">
+      <section className="spec-window">
+        <header className="top-tabs">
+          <div className="window-controls">
+            <span className="chevrons">«</span>
+            <span className="layout-icon">▥</span>
+            <span className="layout-icon">▥</span>
           </div>
 
-          <section className="toolbar">
-            <button className="plan-select">
-              <span className="plan-label">Планувати по</span>
-              <strong>БК-42 · партія 10 шт</strong>
-              <ChevronDown size={16} />
-            </button>
-            <label className="search-box">
-              <Search size={21} />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Найменування / Артикул" />
-              {query && <button onClick={() => setQuery('')}><X size={16} /></button>}
-            </label>
-            <button className="filter-btn"><SlidersHorizontal size={18} /> Фільтри</button>
-            <button className={`switch-wrap ${onlyNeed ? 'on' : ''}`} onClick={() => setOnlyNeed(v => !v)}>
-              <span className="switch"><i /></span>
-              <span>Необхідно закупити</span>
-            </button>
-            <div className="toolbar-spacer" />
-            <button className="icon-btn"><FileSpreadsheet size={23} /></button>
-            <button className="icon-btn"><Settings size={22} /></button>
-          </section>
+          <nav className="tabs">
+            <button>Етапи та операції</button>
+            <button className="active">Матеріали та комплектуючі</button>
+            <button>Аналітика</button>
+            <button>Файли</button>
+            <button className="muted">Історія змін</button>
+          </nav>
 
-          <section className="context-strip">
-            <div><span className="dot blue" /> Виріб: <strong>Блок керування «БК-42»</strong></div>
-            <div><span className="dot green" /> Замовлення на виробництво: <strong>10 шт</strong></div>
-            <div><span className="dot amber" /> Дефіцит: <strong>43 позиції / шт. до закупівлі</strong></div>
-          </section>
+          <button className="help-btn"><CircleHelp size={15} /> Довідка</button>
+        </header>
 
-          <section className="table-card">
-            <div className="table-scroll">
-              <table>
+        <section className="cost-methods">
+          <span className="method-label">Метод розрахунку собівартості</span>
+          <div className="segmented">
+            <button className="active">По залишковій собівартості</button>
+            <button>По останній ціні закупівлі</button>
+            <button>По середньозваженій ціні</button>
+          </div>
+          <div className="method-note">
+            <CircleHelp size={17} />
+            <span>Використовує фактичну вартість залишків по партіях для кожного компонента</span>
+          </div>
+        </section>
+
+        <section className="work-area">
+          <aside className="stages-panel">
+            <div className="stages-header">
+              <button className="back-btn"><ArrowLeft size={19} /></button>
+              <strong>Етапи та операції</strong>
+              <span className="sort-icon">↕</span>
+            </div>
+
+            <div className="stage-list">
+              {stages.map((stage) => (
+                <button className="stage-row" key={stage}>
+                  <ChevronRight size={15} />
+                  <span>{stage}</span>
+                </button>
+              ))}
+            </div>
+
+            <button className="show-all">Показати всі 54 матеріали</button>
+          </aside>
+
+          <section className="materials-panel">
+            <div className="table-toolbar">
+              <div className="toolbar-left">
+                <button className="primary-outline"><Plus size={18} /> Компонент</button>
+                <button className="secondary-outline"><Download size={17} /> Імпорт</button>
+              </div>
+              <div className="toolbar-right">
+                <label className="search-control">
+                  <Search size={17} />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Пошук"
+                  />
+                </label>
+                <button className="secondary-outline"><SquareArrowOutUpRight size={16} /> Інші дії <ChevronDown size={14} /></button>
+              </div>
+            </div>
+
+            <div className="table-wrap">
+              <table className="materials-table">
                 <thead>
                   <tr>
-                    <th className="num">№</th>
-                    <th className="product">Товар</th>
-                    <th>Постачальник</th>
-                    <th className="metric">Необхідно<br/>закупити</th>
-                    <th className="metric">Поточний<br/>залишок</th>
-                    <th className="metric">Резерв</th>
-                    <th className="metric">Доступний<br/>залишок</th>
-                    <th className="metric">Замовлення<br/>покупця</th>
-                    <th className="metric">Замовлення-<br/>наряд</th>
-                    <th className="metric">Замовлення на<br/>виробництво</th>
+                    <th className="check-col"><span className="fake-check" /></th>
+                    <th className="num-col">№</th>
+                    <th className="name-col">Номенклатура</th>
+                    <th className="mod-col">Модифікація</th>
+                    <th className="qty-col">К-сть</th>
+                    <th className="unit-col">Од. вим</th>
+                    <th className="price-col">Ціна</th>
+                    <th className="sum-col">Сума</th>
+                    <th className="settings-col"><SlidersHorizontal size={16} /></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleRows.map((row, idx) => (
-                    <tr key={row.product}>
-                      <td className="num">{idx + 1}</td>
-                      <td className="product"><span className="cube">◇</span>{row.product}</td>
-                      <td>{row.supplier}</td>
-                      <td className="metric need"><strong>{row.need} {row.unit}</strong></td>
-                      <td className="metric">{row.stock} {row.unit}</td>
-                      <td className="metric">{row.reserve} {row.unit}</td>
-                      <td className="metric available">{row.available} {row.unit}</td>
-                      <td className="metric">{row.customerOrder} {row.unit}</td>
-                      <td className="metric muted">{row.workOrder} {row.unit}</td>
-                      <td className="metric production"><strong>{row.production} {row.unit}</strong></td>
+                  {visibleMaterials.map((item, index) => (
+                    <tr key={item.name}>
+                      <td className="check-col"><span className="fake-check" /></td>
+                      <td className="num-col">{index + 1}</td>
+                      <td className="name-col">
+                        <span className="product-name"><Package size={18} /> {item.name}</span>
+                      </td>
+                      <td className="mod-col">{item.mod}</td>
+                      <td className="qty-col">{item.qty}</td>
+                      <td className="unit-col">{item.unit}</td>
+                      <td className="price-col">{fmt(item.price)} UAH</td>
+                      <td className="sum-col">{fmt(item.sum)} UAH</td>
+                      <td className="settings-col"><MoreHorizontal size={18} /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            <div className="table-footer">
-              <div className="pager muted">≪</div>
-              <div className="pager muted">‹</div>
-              <span>1–{visibleRows.length} із {visibleRows.length}</span>
-              <div className="pager">›</div>
-              <div className="pager">≫</div>
-              <span className="rows-label">Рядків на сторінці</span>
-              <button className="rows-count">100 <ChevronDown size={16}/></button>
-              <div className="legend">
-                <span><i className="legend-chip purple" /> потреба виробництва</span>
-                <span><i className="legend-chip red" /> дефіцит до закупівлі</span>
-              </div>
-            </div>
+            <div className="horizontal-scroll"><span /></div>
           </section>
+        </section>
 
-          <div className="version">1.121.38 · demo</div>
-        </main>
-      </div>
-    </div>
+        <footer className="totals-bar">
+          <div>Сума матеріалів <strong>11 800.00 UAH</strong></div>
+          <div>Вартість операцій <strong>2 450.00 UAH</strong></div>
+          <div>Планова собівартість <strong>14 250.00 UAH</strong></div>
+        </footer>
+      </section>
+    </main>
   );
 }
 
